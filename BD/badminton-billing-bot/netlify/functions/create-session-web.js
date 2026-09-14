@@ -1,5 +1,5 @@
 const { verifyIdToken } = require("./lib/lineLogin");
-const { pushMessage, textMessage } = require("./lib/lineClient");
+const { pushMessage } = require("./lib/lineClient");
 const svc = require("./lib/sessionService");
 
 exports.handler = async (event) => {
@@ -14,13 +14,12 @@ exports.handler = async (event) => {
     return jsonRes(400, { error: "invalid_json" });
   }
 
-  const { idToken, groupId, courtName, startStr, endStr, courtFee, extraFee } = payload;
+  const { idToken, groupId, location, dateStr, startStr, endStr, courtFee, shuttlecockFee, otherFee } = payload;
 
-  if (!idToken || !groupId || !courtName || !startStr || !endStr || courtFee == null) {
+  if (!idToken || !groupId || !location || !dateStr || !startStr || !endStr || courtFee == null) {
     return jsonRes(400, { error: "missing_fields" });
   }
 
-  // ยืนยันว่าคนที่ยิง request มานี้ล็อกอินผ่าน LINE จริง ไม่ใช่มั่วขึ้นมาเอง
   let profile;
   try {
     profile = await verifyIdToken(idToken);
@@ -30,13 +29,18 @@ exports.handler = async (event) => {
   }
 
   const parsed = {
-    courtName: String(courtName).trim(),
+    location: String(location).trim(),
+    dateStr: String(dateStr).trim(),
     startStr: String(startStr).trim(),
     endStr: String(endStr).trim(),
     courtFee: parseFloat(courtFee),
-    extraFee: extraFee ? parseFloat(extraFee) : 0,
+    shuttlecockFee: shuttlecockFee ? parseFloat(shuttlecockFee) : 0,
+    otherFee: otherFee ? parseFloat(otherFee) : 0,
   };
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.dateStr)) {
+    return jsonRes(400, { error: "invalid_date_format" });
+  }
   if (!/^\d{1,2}:\d{2}$/.test(parsed.startStr) || !/^\d{1,2}:\d{2}$/.test(parsed.endStr)) {
     return jsonRes(400, { error: "invalid_time_format" });
   }
@@ -45,27 +49,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const existing = await svc.findLatestOpenSession(groupId);
-    if (existing) {
-      return jsonRes(409, {
-        error: "session_already_open",
-        message: `มีรอบ "${existing.courtName}" เปิดอยู่แล้ว ต้องปิดรอบก่อน (พิมพ์ "สรุปรอบ" หรือ "ยกเลิกรอบ" ในแชท)`,
-      });
-    }
-
-    const sessionId = await svc.createSession(groupId, profile.sub, parsed);
-
-    await pushMessage(
-      groupId,
-      textMessage(
-        `✅ ${profile.name || "ผู้จัดก๊วน"} เปิดรอบ "${parsed.courtName}" แล้ว\n` +
-          `เวลา ${parsed.startStr}-${parsed.endStr}\n` +
-          `ค่าสนาม ${parsed.courtFee} บาท${parsed.extraFee ? ` + ค่าอื่นๆ ${parsed.extraFee} บาท` : ""}\n\n` +
-          `พิมพ์ "เข้าร่วม" เพื่อลงชื่อเข้าเล่นได้เลยครับ ระบบจะสรุปบิลอัตโนมัติหลังหมดเวลา`
-      )
-    );
-
-    return jsonRes(200, { ok: true, sessionId });
+    const session = await svc.createSession(groupId, profile.sub, parsed);
+    await pushMessage(groupId, svc.buildSessionAnnouncement(session));
+    return jsonRes(200, { ok: true, sessionId: session.id });
   } catch (err) {
     console.error("create-session-web error:", err);
     return jsonRes(500, { error: "server_error" });

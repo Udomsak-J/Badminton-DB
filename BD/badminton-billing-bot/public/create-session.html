@@ -3,78 +3,269 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>เปิดรอบตีแบด</title>
+<title>จัดการรอบตีแบด</title>
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body {
     margin: 0; font-family: -apple-system, "Helvetica Neue", "Segoe UI", "Noto Sans Thai", sans-serif;
-    background: #f4f6f8; color: #1a1a1a; padding: 20px;
+    background: #f4f6f8; color: #1a1a1a; padding: 16px;
   }
-  .card { max-width: 480px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-  h1 { font-size: 20px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
-  .sub { color: #666; font-size: 13px; margin-bottom: 20px; }
-  label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 6px; }
-  input { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 4px 0 2px; display: flex; align-items: center; gap: 8px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
+  .card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  input { width: 100%; padding: 11px 12px; border: 1px solid #ddd; border-radius: 9px; font-size: 15px; }
   .row { display: flex; gap: 10px; }
   .row > div { flex: 1; }
-  button {
-    width: 100%; margin-top: 24px; padding: 14px; border: none; border-radius: 10px;
-    background: #06c755; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  button.primary {
+    width: 100%; margin-top: 20px; padding: 13px; border: none; border-radius: 9px;
+    background: #06c755; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
   }
-  button:disabled { background: #b7e6c9; cursor: not-allowed; }
-  .msg { margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 14px; display: none; }
+  button.primary:disabled { background: #b7e6c9; cursor: not-allowed; }
+  button.ghost {
+    width: 100%; padding: 12px; border: 1px solid #06c755; border-radius: 9px;
+    background: #fff; color: #06c755; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 14px;
+  }
+  button.small {
+    padding: 8px 12px; border: 1px solid #d9534f; border-radius: 8px; background: #fff;
+    color: #d9534f; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 10px;
+  }
+  .msg { margin-top: 14px; padding: 11px 13px; border-radius: 9px; font-size: 13px; display: none; }
   .msg.error { background: #fdecec; color: #c0392b; display: block; }
   .msg.success { background: #e8f8ef; color: #1f8a4c; display: block; }
   .msg.info { background: #eef4fb; color: #2d6cb0; display: block; }
   .loading { text-align: center; padding: 40px 0; color: #888; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge.open { background: #e8f8ef; color: #1f8a4c; }
+  .badge.billed { background: #eef2f5; color: #667; }
+  .badge.cancelled { background: #fdecec; color: #c0392b; }
+  .session-title { font-size: 16px; font-weight: 700; margin: 6px 0 2px; }
+  .session-meta { font-size: 13px; color: #555; margin-bottom: 8px; }
+  .fees { font-size: 13px; color: #444; line-height: 1.6; }
+  .total { font-weight: 700; margin-top: 4px; }
+  .participants { margin-top: 10px; font-size: 13px; }
+  .chip { display: inline-block; background: #f1f3f5; border-radius: 999px; padding: 3px 10px; margin: 2px 3px 0 0; font-size: 12px; }
+  .empty { color: #999; font-size: 13px; }
+  .section-title { font-size: 14px; font-weight: 700; color: #555; margin: 22px 0 8px 4px; }
+  .updated { font-size: 11px; color: #999; text-align: center; margin-top: 6px; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>🏸 เปิดรอบตีแบด</h1>
-    <div class="sub">กรอกรายละเอียดแล้วกดเปิดรอบ ระบบจะแจ้งเข้ากลุ่มให้อัตโนมัติ</div>
+<div class="wrap">
+  <h1>🏸 จัดการรอบตีแบด</h1>
+  <div class="sub">ดูสถานะรอบแบบเรียลไทม์ / เปิดรอบใหม่</div>
 
-    <div id="loading" class="loading">กำลังเชื่อมต่อ...</div>
+  <div id="loading" class="loading">กำลังเชื่อมต่อ...</div>
 
-    <form id="form" style="display:none">
-      <label for="courtName">ชื่อสนาม</label>
-      <input id="courtName" type="text" placeholder="เช่น สนามA" required />
+  <div id="app" style="display:none">
+    <button class="ghost" id="toggleFormBtn">+ เปิดรอบใหม่</button>
+
+    <form id="form" class="card" style="display:none">
+      <label for="location">สถานที่ / ชื่อสนาม</label>
+      <input id="location" type="text" placeholder="เช่น สนามแบดหลังบ้าน" required />
+
+      <label for="dateInput">วันที่เล่น</label>
+      <input id="dateInput" type="date" required />
 
       <label>เวลาเล่น</label>
       <div class="row">
-        <div>
-          <input id="startTime" type="time" required />
-        </div>
-        <div>
-          <input id="endTime" type="time" required />
-        </div>
+        <div><input id="startTime" type="time" required /></div>
+        <div><input id="endTime" type="time" required /></div>
       </div>
 
-      <label for="courtFee">ค่าสนาม (บาท)</label>
+      <label for="courtFee">ค่าสนาม (บาท) — บังคับ</label>
       <input id="courtFee" type="number" min="0" step="1" placeholder="600" required />
 
-      <label for="extraFee">ค่าใช้จ่ายอื่นๆ (บาท) — ไม่บังคับ</label>
-      <input id="extraFee" type="number" min="0" step="1" placeholder="0" />
+      <label for="shuttlecockFee">ค่าลูกแบต (บาท) — ไม่บังคับ</label>
+      <input id="shuttlecockFee" type="number" min="0" step="1" placeholder="0" />
 
-      <button id="submitBtn" type="submit">เปิดรอบ</button>
+      <label for="otherFee">ค่าใช้จ่ายอื่นๆ (บาท) — ไม่บังคับ</label>
+      <input id="otherFee" type="number" min="0" step="1" placeholder="0" />
+
+      <button class="primary" id="submitBtn" type="submit">เปิดรอบ</button>
+      <div id="formMsg" class="msg"></div>
     </form>
 
-    <div id="msg" class="msg"></div>
+    <div class="section-title">🟢 รอบที่กำลังเปิดรับ</div>
+    <div id="openList"></div>
+
+    <div class="section-title">🗂️ ประวัติที่ผ่านมา</div>
+    <div id="historyList"></div>
+
+    <div class="updated" id="updatedAt"></div>
   </div>
+
+  <div id="topMsg" class="msg"></div>
+</div>
 
 <script>
   const $ = (id) => document.getElementById(id);
+  let liffId, idToken, groupId;
 
-  function showMsg(text, type) {
-    const el = $("msg");
+  function showTopMsg(text, type) {
+    const el = $("topMsg");
     el.textContent = text;
     el.className = "msg " + type;
   }
 
+  function statusBadge(status) {
+    if (status === "open") return '<span class="badge open">เปิดรับอยู่</span>';
+    if (status === "billed") return '<span class="badge billed">สรุปบิลแล้ว</span>';
+    return '<span class="badge cancelled">ยกเลิกแล้ว</span>';
+  }
+
+  function feesLines(s) {
+    const lines = [`ค่าสนาม ${s.courtFee} บาท`];
+    if (s.shuttlecockFee) lines.push(`ค่าลูกแบต ${s.shuttlecockFee} บาท`);
+    if (s.otherFee) lines.push(`ค่าอื่นๆ ${s.otherFee} บาท`);
+    return lines.join(" · ");
+  }
+
+  function renderOpenCard(s) {
+    const div = document.createElement("div");
+    div.className = "card";
+    const perPerson = s.participants.length ? Math.round((s.total / s.participants.length) * 100) / 100 : null;
+    div.innerHTML = `
+      ${statusBadge(s.status)}
+      <div class="session-title">${s.location}</div>
+      <div class="session-meta">${s.dateDisplay} · ${s.startStr}-${s.endStr} น.</div>
+      <div class="fees">${feesLines(s)}</div>
+      <div class="total">รวม ${s.total} บาท${perPerson !== null ? ` (คนละ ${perPerson} บาท)` : ""}</div>
+      <div class="participants">
+        ${s.participants.length ? `เข้าร่วมแล้ว ${s.participants.length} คน:<br>` +
+          s.participants.map((n) => `<span class="chip">${n}</span>`).join("") :
+          '<span class="empty">ยังไม่มีคนเข้าร่วม</span>'}
+      </div>
+      <button class="small" data-close="${s.id}">ปิดรอบตอนนี้ (สรุปบิลทันที)</button>
+    `;
+    div.querySelector("[data-close]").addEventListener("click", () => closeSession(s.id, div));
+    return div;
+  }
+
+  function renderHistoryCard(s) {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      ${statusBadge(s.status)}
+      <div class="session-title">${s.location}</div>
+      <div class="session-meta">${s.dateDisplay} · ${s.startStr}-${s.endStr} น.</div>
+      ${s.status === "billed" ? `<div class="fees">${feesLines(s)}</div><div class="total">รวม ${s.total} บาท · ${s.participants.length} คน</div>` : ""}
+    `;
+    return div;
+  }
+
+  async function closeSession(sessionId, cardEl) {
+    if (!confirm("ยืนยันปิดรอบและสรุปบิลตอนนี้เลยหรือไม่?")) return;
+    try {
+      const res = await fetch("/.netlify/functions/close-session-web", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, groupId, sessionId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("ปิดรอบไม่สำเร็จ: " + (data.error || "unknown error"));
+        return;
+      }
+      loadSessions();
+    } catch (err) {
+      alert("เกิดข้อผิดพลาด: " + err.message);
+    }
+  }
+
+  async function loadSessions() {
+    try {
+      const res = await fetch("/.netlify/functions/sessions-list-web", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, groupId }),
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+
+      const openList = $("openList");
+      const historyList = $("historyList");
+      openList.innerHTML = "";
+      historyList.innerHTML = "";
+
+      const openSessions = data.sessions.filter((s) => s.status === "open");
+      const otherSessions = data.sessions.filter((s) => s.status !== "open");
+
+      if (openSessions.length === 0) {
+        openList.innerHTML = '<div class="card empty">ยังไม่มีรอบที่เปิดอยู่</div>';
+      } else {
+        openSessions.forEach((s) => openList.appendChild(renderOpenCard(s)));
+      }
+
+      if (otherSessions.length === 0) {
+        historyList.innerHTML = '<div class="card empty">ยังไม่มีประวัติ</div>';
+      } else {
+        otherSessions.slice(0, 10).forEach((s) => historyList.appendChild(renderHistoryCard(s)));
+      }
+
+      $("updatedAt").textContent = "อัปเดตล่าสุด " + new Date().toLocaleTimeString("th-TH");
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function submitForm(e) {
+    e.preventDefault();
+    const btn = $("submitBtn");
+    btn.disabled = true;
+    btn.textContent = "กำลังเปิดรอบ...";
+    $("formMsg").className = "msg";
+
+    try {
+      const res = await fetch("/.netlify/functions/create-session-web", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken,
+          groupId,
+          location: $("location").value,
+          dateStr: $("dateInput").value,
+          startStr: $("startTime").value,
+          endStr: $("endTime").value,
+          courtFee: $("courtFee").value,
+          shuttlecockFee: $("shuttlecockFee").value,
+          otherFee: $("otherFee").value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        $("formMsg").textContent = "เปิดรอบไม่สำเร็จ: " + (data.error || "unknown error");
+        $("formMsg").className = "msg error";
+        btn.disabled = false;
+        btn.textContent = "เปิดรอบ";
+        return;
+      }
+      $("formMsg").textContent = "✅ เปิดรอบเรียบร้อย! ระบบแจ้งเข้ากลุ่มแล้ว";
+      $("formMsg").className = "msg success";
+      btn.disabled = false;
+      btn.textContent = "เปิดรอบ";
+      $("form").reset();
+      $("dateInput").value = defaultDateStr();
+      $("form").style.display = "none";
+      $("toggleFormBtn").textContent = "+ เปิดรอบใหม่";
+      loadSessions();
+    } catch (err) {
+      $("formMsg").textContent = "เกิดข้อผิดพลาด: " + err.message;
+      $("formMsg").className = "msg error";
+      btn.disabled = false;
+      btn.textContent = "เปิดรอบ";
+    }
+  }
+
+  function defaultDateStr() {
+    const bangkokNow = new Date(Date.now() + 7 * 3600 * 1000);
+    return bangkokNow.toISOString().slice(0, 10);
+  }
+
   async function main() {
-    let liffId;
     try {
       const cfgRes = await fetch("/.netlify/functions/liff-config");
       const cfg = await cfgRes.json();
@@ -82,7 +273,7 @@
       if (!liffId) throw new Error("ยังไม่ได้ตั้งค่า LIFF_ID บน Netlify");
     } catch (err) {
       $("loading").style.display = "none";
-      showMsg("ตั้งค่าระบบไม่สมบูรณ์: " + err.message, "error");
+      showTopMsg("ตั้งค่าระบบไม่สมบูรณ์: " + err.message, "error");
       return;
     }
 
@@ -90,70 +281,40 @@
       await liff.init({ liffId });
     } catch (err) {
       $("loading").style.display = "none";
-      showMsg("เชื่อมต่อ LINE ไม่สำเร็จ: " + err.message, "error");
+      showTopMsg("เชื่อมต่อ LINE ไม่สำเร็จ: " + err.message, "error");
       return;
     }
 
     if (!liff.isLoggedIn()) {
       liff.login();
-      return; // จะรีโหลดหน้าใหม่หลังล็อกอินเสร็จ
+      return;
     }
 
     const context = liff.getContext();
     if (!context || context.type !== "group") {
       $("loading").style.display = "none";
-      showMsg(
-        "กรุณาเปิดหน้านี้จากลิงก์ที่บอทส่งในกลุ่มไลน์ที่ต้องการเปิดรอบ (เปิดจากนอกกลุ่มจะไม่ทราบว่าจะเปิดรอบให้กลุ่มไหน)",
+      showTopMsg(
+        "กรุณาเปิดหน้านี้จากลิงก์ที่บอทส่งในกลุ่มไลน์ที่ต้องการจัดการ",
         "info"
       );
       return;
     }
-    const groupId = context.groupId;
+    groupId = context.groupId;
+    idToken = liff.getIDToken();
 
+    $("dateInput").value = defaultDateStr();
     $("loading").style.display = "none";
-    $("form").style.display = "block";
+    $("app").style.display = "block";
 
-    $("form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = $("submitBtn");
-      btn.disabled = true;
-      btn.textContent = "กำลังเปิดรอบ...";
-      showMsg("", "");
-      $("msg").className = "msg";
-
-      try {
-        const idToken = liff.getIDToken();
-        const res = await fetch("/.netlify/functions/create-session-web", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idToken,
-            groupId,
-            courtName: $("courtName").value,
-            startStr: $("startTime").value,
-            endStr: $("endTime").value,
-            courtFee: $("courtFee").value,
-            extraFee: $("extraFee").value,
-          }),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          showMsg(data.message || "เปิดรอบไม่สำเร็จ: " + (data.error || "unknown error"), "error");
-          btn.disabled = false;
-          btn.textContent = "เปิดรอบ";
-          return;
-        }
-
-        showMsg("✅ เปิดรอบเรียบร้อย! ระบบแจ้งเข้ากลุ่มแล้ว ปิดหน้านี้ได้เลย", "success");
-        btn.textContent = "เปิดรอบแล้ว";
-        setTimeout(() => liff.closeWindow(), 1500);
-      } catch (err) {
-        showMsg("เกิดข้อผิดพลาด: " + err.message, "error");
-        btn.disabled = false;
-        btn.textContent = "เปิดรอบ";
-      }
+    $("toggleFormBtn").addEventListener("click", () => {
+      const isHidden = $("form").style.display === "none";
+      $("form").style.display = isHidden ? "block" : "none";
+      $("toggleFormBtn").textContent = isHidden ? "− ซ่อนฟอร์มเปิดรอบ" : "+ เปิดรอบใหม่";
     });
+    $("form").addEventListener("submit", submitForm);
+
+    await loadSessions();
+    setInterval(loadSessions, 5000);
   }
 
   main();
