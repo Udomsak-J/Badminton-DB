@@ -1,0 +1,13 @@
+{
+  "name": "badminton-billing-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "บอทเก็บข้อมูลตีแบด สรุปค่าใช้จ่าย และแจ้งบิลอัตโนมัติเข้ากลุ่ม LINE ผ่าน Netlify Functions + Firebase",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
