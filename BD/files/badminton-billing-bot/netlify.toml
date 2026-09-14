@@ -1,0 +1,12 @@
+[build]
+  functions = "netlify/functions"
+  # ไม่มีการ build ฝั่ง frontend เพราะโปรเจกต์นี้มีแต่ backend (functions)
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
+
+# รัน billing-check ทุก 10 นาที (เวลาบน Netlify เป็น UTC เสมอ)
+# ปรับความถี่ได้ตามต้องการ เช่น "*/5 * * * *" = ทุก 5 นาที
+[functions."billing-check"]
+  schedule = "*/10 * * * *"
