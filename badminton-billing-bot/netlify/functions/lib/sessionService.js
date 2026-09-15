@@ -229,15 +229,32 @@ function buildBillText(session) {
   return lines.join("\n");
 }
 
-async function closeAndBillSession(sessionId) {
-  const db = getDb();
-  const ref = db.collection("sessions").doc(sessionId);
-  const snap = await ref.get();
-  if (!snap.exists) return null;
-  const session = { id: snap.id, ...snap.data() };
+// เตรียมข้อความบิล โดย "ไม่" เปลี่ยนสถานะรอบ — ให้ผู้เรียกส่งข้อความสำเร็จก่อน
+// แล้วค่อยเรียก markSessionBilled ทีหลัง เพื่อกันเคส "ปิดบิลไปแล้วแต่ไม่มีใครได้รับข้อความ"
+// ถ้าส่งข้อความไม่สำเร็จ รอบจะยังเป็น "open" อยู่เหมือนเดิม ลองปิดบิลใหม่ได้ในรอบถัดไป
+async function prepareBill(sessionId) {
+  const session = await getSessionById(sessionId);
+  if (!session) return null;
   const billText = buildBillText(session);
-  await ref.update({ status: "billed", billedAt: admin.firestore.FieldValue.serverTimestamp() });
   return { session, billText };
+}
+
+// เรียกหลังยืนยันว่าส่งข้อความบิลเข้ากลุ่มสำเร็จแล้วเท่านั้น
+async function markSessionBilled(sessionId) {
+  const db = getDb();
+  await db
+    .collection("sessions")
+    .doc(sessionId)
+    .update({ status: "billed", billedAt: admin.firestore.FieldValue.serverTimestamp() });
+}
+
+// เก็บไว้เผื่อโค้ดส่วนอื่นยังเรียกชื่อเดิมอยู่ (ทำงานแบบเดิมทุกอย่าง ไม่แนะนำให้ใช้ต่อ)
+// ใช้ prepareBill() + ส่งข้อความ + markSessionBilled() แทน เพื่อความปลอดภัยกว่า
+async function closeAndBillSession(sessionId) {
+  const result = await prepareBill(sessionId);
+  if (!result) return null;
+  await markSessionBilled(sessionId);
+  return result;
 }
 
 async function findSessionsDueForBilling() {
@@ -288,6 +305,8 @@ module.exports = {
   cancelSession,
   sessionTotal,
   buildBillText,
+  prepareBill,
+  markSessionBilled,
   closeAndBillSession,
   findSessionsDueForBilling,
   buildSessionAnnouncement,

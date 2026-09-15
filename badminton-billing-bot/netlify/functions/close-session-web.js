@@ -32,8 +32,10 @@ exports.handler = async (event) => {
     if (session.status !== "open") {
       return jsonRes(409, { error: "not_open" });
     }
-    const { billText } = await svc.closeAndBillSession(sessionId);
+    const { billText } = await svc.prepareBill(sessionId);
+    // ส่งข้อความให้สำเร็จก่อน แล้วค่อย mark billed — กันเคสส่งไม่สำเร็จแต่ปิดรอบไปแล้ว
     await pushMessage(groupId, textMessage(billText));
+    await svc.markSessionBilled(sessionId);
     return jsonRes(200, { ok: true });
   } catch (err) {
     console.error("close-session-web error:", err);

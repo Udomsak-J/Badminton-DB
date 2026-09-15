@@ -20,6 +20,13 @@ exports.handler = async (event) => {
     return jsonRes(400, { error: "missing_fields" });
   }
 
+  // ตรวจรูปแบบ groupId คร่าวๆ ก่อน (LINE group ID: ขึ้นต้นด้วย C ตามด้วย hex 32 ตัว)
+  // กันไม่ให้สร้าง session ทิ้งไว้ในฐานข้อมูลทั้งที่ยังส่งข้อความประกาศเข้ากลุ่มไม่ได้
+  if (!/^[CRU][0-9a-fA-F]{32}$/.test(groupId)) {
+    console.error("create-session-web: groupId รูปแบบผิดปกติ:", JSON.stringify(groupId));
+    return jsonRes(400, { error: "invalid_group_id" });
+  }
+
   let profile;
   try {
     profile = await verifyIdToken(idToken);
@@ -50,6 +57,8 @@ exports.handler = async (event) => {
 
   try {
     const session = await svc.createSession(groupId, profile.sub, parsed);
+    // log ค่า groupId จริงที่จะส่งไปให้ LINE เพื่อ debug กรณี LINE ตอบว่า 'to' ผิดรูปแบบ
+    console.error("DEBUG pushMessage to groupId:", JSON.stringify(groupId), "length:", groupId.length);
     await pushMessage(groupId, svc.buildSessionAnnouncement(session));
     return jsonRes(200, { ok: true, sessionId: session.id });
   } catch (err) {

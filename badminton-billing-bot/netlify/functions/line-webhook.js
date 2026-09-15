@@ -141,8 +141,10 @@ async function handleEvent(evt) {
         await replyMessage(evt.replyToken, textMessage("ยังไม่มีรอบที่เปิดอยู่ครับ"));
         return;
       }
-      const { billText } = await svc.closeAndBillSession(session.id);
+      const { billText } = await svc.prepareBill(session.id);
+      // ส่งข้อความให้สำเร็จก่อน แล้วค่อย mark billed — กันเคสส่งไม่สำเร็จแต่ปิดรอบไปแล้ว
       await replyMessage(evt.replyToken, textMessage(billText));
+      await svc.markSessionBilled(session.id);
       return;
     }
 

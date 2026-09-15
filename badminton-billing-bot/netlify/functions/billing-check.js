@@ -9,9 +9,13 @@ exports.handler = async () => {
 
   for (const session of dueSessions) {
     try {
-      const { billText } = await svc.closeAndBillSession(session.id);
+      const { billText } = await svc.prepareBill(session.id);
+      // ส่งข้อความก่อน — ถ้า LINE API ล้มเหลว callLineApi จะ throw แล้วกระโดดไป catch ทันที
+      // โดยที่ยังไม่ได้ mark ว่า billed รอบนี้จึงยังเป็น "open" รอให้รอบถัดไปของ billing-check ลองใหม่ได้
       await pushMessage(session.groupId, textMessage(billText));
-      console.log(`ส่งบิลรอบ ${session.id} (${session.courtName}) เรียบร้อย`);
+      // ส่งสำเร็จแน่นอนแล้วเท่านั้น ถึงจะ mark ว่าปิดบิล
+      await svc.markSessionBilled(session.id);
+      console.log(`ส่งบิลรอบ ${session.id} (${session.location}) เรียบร้อย`);
     } catch (err) {
       console.error(`ส่งบิลรอบ ${session.id} ล้มเหลว:`, err);
     }

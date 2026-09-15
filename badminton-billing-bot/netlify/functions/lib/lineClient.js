@@ -25,7 +25,16 @@ async function callLineApi(path, body) {
   });
   if (!res.ok) {
     const errText = await res.text();
-    console.error("LINE API error:", res.status, errText);
+    console.error(
+      "LINE API error:",
+      res.status,
+      errText,
+      "| request body:",
+      JSON.stringify(body)
+    );
+    // เดิม: แค่ log แล้วปล่อยผ่าน ทำให้โค้ดฝั่งเรียกคิดว่าสำเร็จเสมอ
+    // แก้: throw ออกไป เพื่อให้ try/catch ของฝั่งเรียก (เช่น billing-check) รู้ตัวว่าส่งไม่สำเร็จจริง
+    throw new Error(`LINE API ${path} failed: ${res.status} ${errText}`);
   }
   return res;
 }

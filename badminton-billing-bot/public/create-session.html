@@ -184,7 +184,17 @@
         body: JSON.stringify({ idToken, groupId }),
       });
       const data = await res.json();
-      if (!res.ok) return;
+      if (!res.ok) {
+        // เดิม: เงียบๆ ไม่แสดงอะไรเลย ทำให้ดูเหมือนไม่มีรอบทั้งที่จริง error
+        // แก้: แสดง error จริงให้เห็น พร้อมเวลาที่ error เกิดขึ้น
+        $("openList").innerHTML =
+          '<div class="card empty">โหลดรายการไม่สำเร็จ: ' +
+          (data.error || "unknown error") +
+          "</div>";
+        $("updatedAt").textContent =
+          "โหลดล้มเหลวล่าสุด " + new Date().toLocaleTimeString("th-TH");
+        return;
+      }
 
       const openList = $("openList");
       const historyList = $("historyList");
@@ -208,6 +218,9 @@
 
       $("updatedAt").textContent = "อัปเดตล่าสุด " + new Date().toLocaleTimeString("th-TH");
     } catch (err) {
+      // เดิม: แค่ console.error ผู้ใช้มองไม่เห็นเลย
+      $("openList").innerHTML =
+        '<div class="card empty">เกิดข้อผิดพลาด: ' + err.message + "</div>";
       console.error(err);
     }
   }
