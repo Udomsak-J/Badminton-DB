@@ -25,7 +25,13 @@ async function callLineApi(path, body) {
   });
   if (!res.ok) {
     const errText = await res.text();
-    console.error("LINE API error:", res.status, errText);
+    console.error(
+      "LINE API error:",
+      res.status,
+      errText,
+      "| request body:",
+      JSON.stringify(body)
+    );
   }
   return res;
 }
