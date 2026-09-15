@@ -48,8 +48,9 @@ exports.handler = async (event) => {
     return jsonRes(400, { error: "invalid_court_fee" });
   }
 
-  try {
+    try {
     const session = await svc.createSession(groupId, profile.sub, parsed);
+    console.error("DEBUG pushMessage to groupId:", JSON.stringify(groupId), "length:", groupId.length);
     await pushMessage(groupId, svc.buildSessionAnnouncement(session));
     return jsonRes(200, { ok: true, sessionId: session.id });
   } catch (err) {
